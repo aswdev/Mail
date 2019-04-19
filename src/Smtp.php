@@ -49,7 +49,11 @@ class Smtp extends Base
      * @var string|null $username The mailbox user name
      */
     protected $username = null;
-       
+    /**
+     * @var string|null $replyToMail The mail to wchich reply to header should be set
+     */
+    public $replyToMail = null;
+
     /**
      * @var string|null $password The mailbox password
      */
@@ -89,6 +93,11 @@ class Smtp extends Base
      * @var array $bcc The list of BCCs sorry i forgot what this stood for :(
      */
     protected $bcc = array();
+
+    /**
+     * @var array $replyTo The list of reply to emails
+     */
+    protected $replyTo = array();
        
     /**
      * @var array $attachments The list of attachments
@@ -176,6 +185,24 @@ class Smtp extends Base
             ->test(2, 'string', 'null');
 
         $this->bcc[$email] = $name;
+        return $this;
+    }
+
+    /**
+     * Adds an email to the reply to list
+     *
+     * @param *string $email Email address
+     * @param string  $name  Name of person
+     *
+     * @return Eden\Mail\Smtp
+     */
+    public function addReplyTo($email, $name = null)
+    {
+        Argument::i()
+            ->test(1, 'string')
+            ->test(2, 'string', 'null');
+
+        $this->replyTo[$email] = $name;
         return $this;
     }
 
@@ -393,6 +420,17 @@ class Smtp extends Base
                     ->trigger();
             }
         }
+        //add reply to
+        foreach ($this->replyTo as $email => $name) {
+            if (!$this->call('RCPT TO:<' . $email . '>', 250, 251)) {
+                $this->disconnect();
+                //throw exception
+                Exception::i()
+                    ->setMessage(Exception::SMTP_ADD_EMAIL)
+                    ->addVariable($email)
+                    ->trigger();
+            }
+        }
 
         //start compose
         if (!$this->call('DATA', 354)) {
@@ -451,6 +489,7 @@ class Smtp extends Base
         $this->to           = array();
         $this->cc           = array();
         $this->bcc      = array();
+        $this->replyTo      = array();
         $this->attachments = array();
 
         $this->disconnect();
@@ -512,6 +551,18 @@ class Smtp extends Base
 
         //add bcc
         foreach ($this->bcc as $email => $name) {
+            if (!$this->call('RCPT TO:<' . $email . '>', 250, 251)) {
+                $this->disconnect();
+                //throw exception
+                Exception::i()
+                    ->setMessage(Exception::SMTP_ADD_EMAIL)
+                    ->addVariable($email)
+                    ->trigger();
+            }
+        }
+
+        //add replyTo
+        foreach ($this->replyTo as $email => $name) {
             if (!$this->call('RCPT TO:<' . $email . '>', 250, 251)) {
                 $this->disconnect();
                 //throw exception
@@ -753,7 +804,7 @@ class Smtp extends Base
         $subject = trim($this->subject);
         $subject = str_replace(array("\n", "\r"), '', $subject);
 
-        $to = $cc = $bcc = array();
+        $to = $cc = $bcc = $replyTo = array();
         foreach ($this->to as $email => $name) {
             $to[] = trim($name.' <'.$email.'>');
         }
@@ -764,6 +815,10 @@ class Smtp extends Base
 
         foreach ($this->bcc as $email => $name) {
             $bcc[] = trim($name.' <'.$email.'>');
+        }
+
+        foreach ($this->replyTo as $email => $name) {
+            $replyTo[] = trim($name.' <'.$email.'>');
         }
 
         list($account, $suffix) = explode('@', $this->username);
@@ -782,11 +837,15 @@ class Smtp extends Base
             $headers['Bcc'] = implode(', ', $bcc);
         }
 
+        if (!empty($bcc)) {
+            $headers['Bcc'] = implode(', ', $bcc);
+        }
+
         $headers['Message-ID']  = '<'.md5(uniqid(time())).'.eden@'.$suffix.'>';
 
         $headers['Thread-Topic'] = $this->subject;
 
-        $headers['Reply-To'] = '<'.$this->username.'>';
+        $headers['Reply-To'] = '<'.$this->replyToMail.'>';
 
         foreach ($customHeaders as $key => $value) {
             $headers[$key] = $value;
