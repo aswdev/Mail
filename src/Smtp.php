@@ -277,7 +277,9 @@ class Smtp extends Base
         }
 
         $this->receive();
-
+        if ( ! isset( $_SERVER[‘HTTP_HOST’] ) ) {
+            $_SERVER[‘HTTP_HOST’] = ‘localhost’;
+        }
         if (!$this->call('EHLO '.$_SERVER['HTTP_HOST'], 250)
         && !$this->call('HELO '.$_SERVER['HTTP_HOST'], 250)) {
             $this->disconnect();
