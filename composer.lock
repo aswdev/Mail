@@ -4,7 +4,7 @@
         "Read more about it at https://getcomposer.org/doc/01-basic-usage.md#installing-dependencies",
         "This file is @generated automatically"
     ],
-    "content-hash": "502a91784f033b828e400a077627546c",
+    "content-hash": "21c35c8632a8cf0b920221b00966713d",
     "packages": [
         {
             "name": "eden/array",

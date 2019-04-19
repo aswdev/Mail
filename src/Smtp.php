@@ -882,7 +882,7 @@ class Smtp extends Base
      */
     protected function getHtmlBody()
     {
-        $charset    = $this->isUtf8($this->body['text/html']) ? 'utf-8' : 'US-ASCII';
+        $charset    = $this->isUtf8($this->body['text/html']) ? 'utf-8' : 'UTF-8';
         $html       = str_replace("\r", '', trim($this->body['text/html']));
 
         $encoded = explode("\n", $this->quotedPrintableEncode($html));
